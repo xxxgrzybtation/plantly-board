@@ -3,32 +3,43 @@ import network
 import urequests
 import utime
 import ujson
+import config
 
-api_url = "apiURL"
+data = []
+
+def get_current_timestamp():
+    current_time_tuple = utime.localtime()
+    unix_timestamp = utime.mktime(current_time_tuple)
+    return unix_timestamp
 
 def get_capacitator_measurements():
     soil_adc = ADC(Pin(27)) # convert analog signal into digital
     max_moisture_value = 65535 # max value of uint16
-    moistureData = 100 - ((soil_adc.read_u16()*100)/ max_moisture_value) # calculate moisture
-    moisturePercentage = "%.2f" % moistureData
-    print(f"moisture: {moisturePercentage}% (adc: {str(soil_adc.read_u16())})")
-    return moisturePercentage
+    moisture_data = 100 - ((soil_adc.read_u16()*100)/ max_moisture_value) # calculate moisture
+    moisture_percentage = int(moisture_data)
+    print(f"moisture: {moisture_percentage}% (adc: {str(soil_adc.read_u16())})")
+    return moisture_percentage
 
-def connectToInternet(ssid, password):
+def create_new_datapoint():
+    timestamp = get_current_timestamp()
+    measurement = get_capacitator_measurements()
+    datapoint = {"timestamp": timestamp, "value": measurement}
+    return datapoint
+
+def connect_to_internet(ssid, password):
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     wlan.connect(ssid, password)
 
-def makeGetRequest(url):
+def make_get_request(url):
     print("Querying the user object")
     r = urequests.get(url)
     print(r.json())
 
-def makePostRequest(data, api_url):
+def make_post_request(name, data, api_url):
     data = {
-        "name": "Test",
-        "last_name": "Test",
-        "purpose": data
+        "name": name,
+        "data": data
     }
 
     json_data = ujson.dumps(data)
@@ -39,8 +50,12 @@ def makePostRequest(data, api_url):
     print(json_data)
 
 if __name__ == "__main__":
-    connectToInternet("name", "password")
+    connect_to_internet(config.ssid, config.password)
     while True:
-        moistureData = get_capacitator_measurements()
-        makePostRequest(moistureData, api_url)
+        datapoint = create_new_datapoint()
+        data.append(datapoint)    
+        print(data)
+        if len(data) == 30:
+            make_post_request("Kaktus", data, config.apiURL)
+            break
         utime.sleep(600)
