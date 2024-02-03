@@ -54,8 +54,7 @@ if __name__ == "__main__":
     while True:
         datapoint = create_new_datapoint()
         data.append(datapoint)    
-        print(data)
         if len(data) == 30:
-            make_post_request("Kaktus", data, config.apiURL)
+            make_post_request("Drzewko Owocowe", data, config.apiURL)
             break
         utime.sleep(600)
